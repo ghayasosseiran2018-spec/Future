@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>COMMAND // OVERWATCH</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%230d1117%22 stroke=%22%23ffb000%22 stroke-width=%226%22/><circle cx=%2250%22 cy=%2250%22 r=%2214%22 fill=%22%2339e6ff%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+
+<div class="crt-overlay" aria-hidden="true"></div>
+
+<div class="console">
+
+  <!-- ============ TOP STATUS BAR ============ -->
+  <header class="topbar">
+    <div class="topbar-block ident">
+      <span class="ident-dot"></span>
+      <span class="ident-text">OVERWATCH<br><small>PERSONAL COMMAND PANEL</small></span>
+    </div>
+    <div class="topbar-block clock">
+      <div class="stardate" id="stardate">STARDATE --</div>
+      <div class="clocktime" id="clocktime">00:00:00</div>
+    </div>
+    <div class="topbar-block status-lights" id="statusLights">
+      <div class="light" data-key="docs"><span class="lamp"></span>DOCS LINK</div>
+      <div class="light" data-key="alerts"><span class="lamp"></span>ALERTS</div>
+      <div class="light" data-key="sync"><span class="lamp lamp-on"></span>SYNC</div>
+    </div>
+  </header>
+
+  <!-- ============ TRAJECTORY STRIP ============ -->
+  <section class="trajectory" id="trajectory" aria-label="Life goal trajectory">
+    <div class="trajectory-label">MISSION TRAJECTORY</div>
+    <div class="trajectory-track" id="trajectoryTrack"></div>
+  </section>
+
+  <div class="mainarea">
+    <!-- ============ SIDEBAR NAV ============ -->
+    <nav class="sidebar" id="sidebar">
+      <button class="navbtn active" data-view="overview">OVERVIEW</button>
+      <button class="navbtn" data-view="tasks">TASK QUEUE</button>
+      <button class="navbtn" data-view="projects">PROJECT REGISTRY</button>
+      <button class="navbtn" data-view="docs">DOCS LINK</button>
+      <button class="navbtn" data-view="alerts">ALERTS</button>
+      <button class="navbtn" data-view="suggestions">ADVISORY</button>
+      <button class="navbtn" data-view="settings">SETTINGS</button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-foot">SYS.OK</div>
+    </nav>
+
+    <!-- ============ VIEWPORT ============ -->
+    <main class="viewport" id="viewport">
+
+      <!-- OVERVIEW -->
+      <section class="view" id="view-overview">
+        <div class="panel-grid">
+          <div class="panel" id="panel-countdown">
+            <div class="panel-head amber">T-MINUS // LAW SCHOOL</div>
+            <div class="panel-body big-readout" id="countdownReadout">--</div>
+          </div>
+          <div class="panel" id="panel-tasks-summary">
+            <div class="panel-head cyan">TASK QUEUE // ACTIVE</div>
+            <div class="panel-body" id="tasksSummary"></div>
+          </div>
+          <div class="panel" id="panel-projects-summary">
+            <div class="panel-head amber">PROJECT REGISTRY // FIELDS</div>
+            <div class="panel-body" id="projectsSummary"></div>
+          </div>
+          <div class="panel" id="panel-alerts-summary">
+            <div class="panel-head red">ALERTS // PENDING</div>
+            <div class="panel-body" id="alertsSummary"></div>
+          </div>
+          <div class="panel wide" id="panel-suggestion">
+            <div class="panel-head cyan">ADVISORY // SUGGESTED MOVE</div>
+            <div class="panel-body" id="suggestionSummary"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TASKS -->
+      <section class="view hidden" id="view-tasks">
+        <div class="panel-head amber">TASK QUEUE</div>
+        <form class="inline-form" id="taskForm">
+          <input type="text" id="taskTitle" placeholder="NEW TASK DESIGNATION" required />
+          <select id="taskProject"></select>
+          <select id="taskPriority">
+            <option value="high">HIGH</option>
+            <option value="med" selected>MED</option>
+            <option value="low">LOW</option>
+          </select>
+          <input type="date" id="taskDue" />
+          <button type="submit" class="btn">ADD</button>
+        </form>
+        <div id="taskList" class="list"></div>
+      </section>
+
+      <!-- PROJECTS -->
+      <section class="view hidden" id="view-projects">
+        <div class="panel-head cyan">PROJECT REGISTRY</div>
+        <form class="inline-form" id="projectForm">
+          <input type="text" id="projectName" placeholder="PROJECT NAME" required />
+          <input type="text" id="projectDiscipline" placeholder="FIELD / DISCIPLINE" required />
+          <select id="projectStatus">
+            <option value="active">ACTIVE</option>
+            <option value="paused">PAUSED</option>
+            <option value="done">COMPLETE</option>
+          </select>
+          <button type="submit" class="btn">REGISTER</button>
+        </form>
+        <div id="projectList" class="list"></div>
+      </section>
+
+      <!-- DOCS LINK -->
+      <section class="view hidden" id="view-docs">
+        <div class="panel-head amber">GOOGLE DOCS LINK</div>
+        <div class="panel-body">
+          <p class="hint">Connect your Google account to pull live word counts and last-edited timestamps for docs linked to your projects. Requires a Client ID — see SETTINGS.</p>
+          <button class="btn" id="googleConnectBtn">CONNECT GOOGLE ACCOUNT</button>
+          <button class="btn ghost" id="googleRefreshBtn">REFRESH DOC DATA</button>
+          <div id="googleStatus" class="hint"></div>
+        </div>
+        <div id="docsList" class="list"></div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="view hidden" id="view-alerts">
+        <div class="panel-head red">ALERTS &amp; REMINDERS</div>
+        <form class="inline-form" id="reminderForm">
+          <input type="text" id="reminderText" placeholder="REMINDER TEXT" required />
+          <select id="reminderType">
+            <option value="time">AT TIME</option>
+            <option value="stale">IF PROJECT STALE (DAYS)</option>
+          </select>
+          <input type="datetime-local" id="reminderTime" />
+          <input type="number" id="reminderDays" min="1" placeholder="DAYS" style="display:none;width:80px;" />
+          <select id="reminderProject"></select>
+          <button type="submit" class="btn">ARM</button>
+        </form>
+        <div id="reminderList" class="list"></div>
+      </section>
+
+      <!-- SUGGESTIONS -->
+      <section class="view hidden" id="view-suggestions">
+        <div class="panel-head cyan">ADVISORY FEED</div>
+        <button class="btn" id="newSuggestionBtn">GENERATE NEW MOVE</button>
+        <div id="suggestionList" class="list"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view hidden" id="view-settings">
+        <div class="panel-head amber">SYSTEM CONFIGURATION</div>
+        <div class="panel-body settings-body">
+          <label>Law school start date
+            <input type="date" id="lawSchoolStart" />
+          </label>
+          <label>Google OAuth Client ID
+            <input type="text" id="googleClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" />
+          </label>
+          <p class="hint">Need a Client ID? Open the README setup guide bundled with this app for step-by-step instructions (Google Cloud Console, OAuth consent screen, Web application credential, authorized origin).</p>
+          <div class="btn-row">
+            <button class="btn" id="saveSettingsBtn">SAVE</button>
+            <button class="btn ghost" id="exportBtn">EXPORT DATA</button>
+            <button class="btn ghost" id="importBtn">IMPORT DATA</button>
+            <button class="btn danger" id="resetBtn">RESET ALL DATA</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json" style="display:none;" />
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
