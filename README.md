@@ -1,14 +1,18 @@
 # OVERWATCH — Personal Command Panel
 
-A retro-futurist command console for one mission: JD → international lawyer →
-PhD in philosophy (phenomenology and critical political/legal thought of
-vitality, time, and love). It tracks tasks, projects (tagged by academic
-field), Google Docs progress, reminders, and surfaces curated creative/
-analytical suggestions tuned to that specific trajectory.
+A retro-futurist command console for one mission: a JD starting this
+September → practicing international lawyer → PhD in philosophy
+(phenomenology and critical political/legal thought of vitality, time, and
+love). It tracks tasks, projects (tagged by academic field), Google Docs
+progress, reminders, a real knowledge base on that exact trajectory, and
+JARVIS — a live, voice-capable conversational assistant that can actually
+reorganize your schedule rather than just describe what you should do.
 
 No backend, no build step — static HTML/CSS/JS. All your data (tasks,
-projects, reminders, settings) lives in your browser's `localStorage`, on
-your machine only.
+projects, reminders, settings, conversation log) lives in your browser's
+`localStorage`, on your machine only. JARVIS talks directly to Anthropic's
+API from your browser using your own API key — no data passes through any
+third party.
 
 ## Running it
 
@@ -35,25 +39,62 @@ step below.
 
 ## Using the panel
 
+- **JARVIS** — the home tab. A rotating constellation sphere (the "mind")
+  on the left, one node per unit of knowledge the panel holds; a live chat
+  on the right. Type or use the mic; ask it to plan your week, talk through
+  an idea, or reorganize your priorities — it can actually add/update tasks,
+  projects, reminders, and trajectory progress as it talks, not just suggest.
+  Use REQUEST CHECK-IN to have it proactively review your state on demand;
+  it also does this automatically at most once every 6 hours.
 - **OVERVIEW** — at-a-glance status: countdown to law school, active tasks,
   registered projects, pending alerts, and the latest advisory suggestion.
 - **TASK QUEUE** — add/complete/delete tasks, optionally tied to a project,
   with priority and due date.
 - **PROJECT REGISTRY** — register each project with its academic
   discipline/field (e.g. "Philosophy — Phenomenology", "Law — International
-  Law"). This is what the advisory engine reads to tailor suggestions.
+  Law"). JARVIS and the advisory engine both read this to tailor what they say.
+- **KNOWLEDGE BASE** — the actual curated material JARVIS draws on: the 1L
+  curriculum and international law on-ramps, international law career tracks,
+  phenomenology's core figures and its resources on time and vitality,
+  critical legal/political thought (including love as a political category),
+  and what philosophy PhD admissions and funding actually look like.
 - **DOCS LINK** — connect your Google account (see setup below) to pull live
   word counts and last-edited times from Google Docs into linked projects.
 - **ALERTS** — arm reminders either at a specific time, or "if project X goes
   stale for N days" (no logged update). Firing reminders light up the ALERTS
   lamp in the top bar and play a short tone while the tab is open.
-- **ADVISORY** — generate a new suggested creative/analytical move. The
-  engine prioritizes stale projects and near-term deadlines, and otherwise
-  rotates through a curated prompt library written specifically for your
-  fields (phenomenology, critical legal/political theory, international law).
+- **ADVISORY** — an offline, rule-based fallback: generate a suggested
+  creative/analytical move without needing an API key. JARVIS supersedes this
+  once it's configured, but it keeps working either way.
 - **SETTINGS** — set your law school start date (drives the trajectory
-  countdown), set your Google OAuth Client ID, export/import a JSON backup,
-  or reset all local data.
+  countdown), your Anthropic API key + model (powers JARVIS), whether JARVIS
+  speaks its replies aloud, your Google OAuth Client ID, export/import a JSON
+  backup, or reset all local data.
+
+## Setting up JARVIS (live conversation)
+
+1. Go to [console.anthropic.com](https://console.anthropic.com/), sign in,
+   and create an API key under **API Keys**.
+2. Paste it into SETTINGS → Anthropic API key → SAVE. The model field
+   defaults to `claude-sonnet-5`; change it there if you'd rather use a
+   different model (see [Anthropic's model list](https://docs.claude.com/en/docs/about-claude/models)
+   for current options — Haiku is cheaper/faster if you're chatting a lot).
+3. Go to the JARVIS tab and start talking, by voice or by typing.
+
+**Privacy & cost, read before pasting a key in:** this key is stored only in
+your browser's local storage and is sent directly from your browser to
+Anthropic's API on every message — nothing passes through any server of
+ours. That also means usage is billed to your own Anthropic account like any
+other API use, and the request headers make the browser call directly
+(`anthropic-dangerous-direct-browser-access`), which is fine for a tool only
+you run locally, but means **you should not deploy this app publicly with
+your key already filled in** — anyone loading that page could spend your API
+credits. Keep it local, or gate any public deployment behind your own auth.
+
+**Voice**: mic input and spoken replies use your browser's built-in Web
+Speech API (works out of the box in Chrome/Edge; Safari and Firefox support
+varies). No extra setup, no extra cost — if it's not supported, JARVIS
+quietly falls back to typing only.
 
 ## Setting up live Google Docs tracking
 
@@ -91,6 +132,9 @@ except directly between your browser and Google's own APIs.
 
 ## Data & backups
 
-Everything is stored under one `localStorage` key. Use SETTINGS → EXPORT DATA
-to download a JSON snapshot, and IMPORT DATA to restore it (e.g. after
-clearing browser data or moving to a new machine).
+Everything (tasks, projects, reminders, settings, conversation log) is stored
+under one `localStorage` key. Use SETTINGS → EXPORT DATA to download a JSON
+snapshot, and IMPORT DATA to restore it (e.g. after clearing browser data or
+moving to a new machine). Note that exporting includes your Anthropic API key
+and Google Client ID in plain text if you've set them — treat backup files
+like any other secret, and don't share them.

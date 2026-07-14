@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>COMMAND // OVERWATCH</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%230d1117%22 stroke=%22%23ffb000%22 stroke-width=%226%22/><circle cx=%2250%22 cy=%2250%22 r=%2214%22 fill=%22%2339e6ff%22/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%230a0a12%22 stroke=%22%23c9aef2%22 stroke-width=%226%22/><circle cx=%2250%22 cy=%2250%22 r=%2214%22 fill=%22%239fd0f5%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="src/styles.css" />
@@ -28,6 +28,7 @@
     <div class="topbar-block status-lights" id="statusLights">
       <div class="light" data-key="docs"><span class="lamp"></span>DOCS LINK</div>
       <div class="light" data-key="alerts"><span class="lamp"></span>ALERTS</div>
+      <div class="light" data-key="jarvis"><span class="lamp"></span>JARVIS</div>
       <div class="light" data-key="sync"><span class="lamp lamp-on"></span>SYNC</div>
     </div>
   </header>
@@ -41,9 +42,11 @@
   <div class="mainarea">
     <!-- ============ SIDEBAR NAV ============ -->
     <nav class="sidebar" id="sidebar">
-      <button class="navbtn active" data-view="overview">OVERVIEW</button>
+      <button class="navbtn active" data-view="jarvis">JARVIS</button>
+      <button class="navbtn" data-view="overview">OVERVIEW</button>
       <button class="navbtn" data-view="tasks">TASK QUEUE</button>
       <button class="navbtn" data-view="projects">PROJECT REGISTRY</button>
+      <button class="navbtn" data-view="knowledge">KNOWLEDGE BASE</button>
       <button class="navbtn" data-view="docs">DOCS LINK</button>
       <button class="navbtn" data-view="alerts">ALERTS</button>
       <button class="navbtn" data-view="suggestions">ADVISORY</button>
@@ -55,11 +58,38 @@
     <!-- ============ VIEWPORT ============ -->
     <main class="viewport" id="viewport">
 
+      <!-- JARVIS -->
+      <section class="view" id="view-jarvis">
+        <div class="jarvis-layout">
+          <div class="sphere-panel">
+            <div class="sphere-canvas-wrap"><canvas id="mindSphere" width="380" height="380"></canvas></div>
+            <div class="sphere-stats">
+              <div>NODES: <b id="sphereNodeCount">0</b></div>
+              <div>CONNECTIONS: <b id="sphereEdgeCount">0</b></div>
+              <div>CONVERSATION TURNS: <b id="sphereTurnCount">0</b></div>
+            </div>
+          </div>
+          <div class="chat-panel">
+            <div class="panel-head violet">JARVIS // CONVERSATION</div>
+            <div class="chat-log" id="chatLog"></div>
+            <div class="chat-toolbar">
+              <button class="btn ghost" id="micBtn">🎙 MIC</button>
+              <button class="btn ghost" id="speakToggleBtn">🔊 SPEAK REPLIES: ON</button>
+              <button class="btn ghost" id="checkInBtn">REQUEST CHECK-IN</button>
+            </div>
+            <form class="chat-input-row" id="chatForm">
+              <textarea id="chatInput" placeholder="Talk to JARVIS — ask it to plan your week, discuss an idea, or reorganize priorities..."></textarea>
+              <button type="submit" class="btn">SEND</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <!-- OVERVIEW -->
-      <section class="view" id="view-overview">
+      <section class="view hidden" id="view-overview">
         <div class="panel-grid">
           <div class="panel" id="panel-countdown">
-            <div class="panel-head amber">T-MINUS // LAW SCHOOL</div>
+            <div class="panel-head orange">T-MINUS // LAW SCHOOL</div>
             <div class="panel-body big-readout" id="countdownReadout">--</div>
           </div>
           <div class="panel" id="panel-tasks-summary">
@@ -67,7 +97,7 @@
             <div class="panel-body" id="tasksSummary"></div>
           </div>
           <div class="panel" id="panel-projects-summary">
-            <div class="panel-head amber">PROJECT REGISTRY // FIELDS</div>
+            <div class="panel-head violet">PROJECT REGISTRY // FIELDS</div>
             <div class="panel-body" id="projectsSummary"></div>
           </div>
           <div class="panel" id="panel-alerts-summary">
@@ -75,7 +105,7 @@
             <div class="panel-body" id="alertsSummary"></div>
           </div>
           <div class="panel wide" id="panel-suggestion">
-            <div class="panel-head cyan">ADVISORY // SUGGESTED MOVE</div>
+            <div class="panel-head blue">ADVISORY // SUGGESTED MOVE</div>
             <div class="panel-body" id="suggestionSummary"></div>
           </div>
         </div>
@@ -83,7 +113,7 @@
 
       <!-- TASKS -->
       <section class="view hidden" id="view-tasks">
-        <div class="panel-head amber">TASK QUEUE</div>
+        <div class="panel-head orange">TASK QUEUE</div>
         <form class="inline-form" id="taskForm">
           <input type="text" id="taskTitle" placeholder="NEW TASK DESIGNATION" required />
           <select id="taskProject"></select>
@@ -100,7 +130,7 @@
 
       <!-- PROJECTS -->
       <section class="view hidden" id="view-projects">
-        <div class="panel-head cyan">PROJECT REGISTRY</div>
+        <div class="panel-head violet">PROJECT REGISTRY</div>
         <form class="inline-form" id="projectForm">
           <input type="text" id="projectName" placeholder="PROJECT NAME" required />
           <input type="text" id="projectDiscipline" placeholder="FIELD / DISCIPLINE" required />
@@ -114,9 +144,18 @@
         <div id="projectList" class="list"></div>
       </section>
 
+      <!-- KNOWLEDGE BASE -->
+      <section class="view hidden" id="view-knowledge">
+        <div class="panel-head blue">KNOWLEDGE BASE</div>
+        <div class="panel-body">
+          <p class="hint">What JARVIS actually knows about your trajectory — the same material it draws on in conversation. Browse it directly here.</p>
+        </div>
+        <div id="knowledgeList" class="list"></div>
+      </section>
+
       <!-- DOCS LINK -->
       <section class="view hidden" id="view-docs">
-        <div class="panel-head amber">GOOGLE DOCS LINK</div>
+        <div class="panel-head orange">GOOGLE DOCS LINK</div>
         <div class="panel-body">
           <p class="hint">Connect your Google account to pull live word counts and last-edited timestamps for docs linked to your projects. Requires a Client ID — see SETTINGS.</p>
           <button class="btn" id="googleConnectBtn">CONNECT GOOGLE ACCOUNT</button>
@@ -146,21 +185,36 @@
       <!-- SUGGESTIONS -->
       <section class="view hidden" id="view-suggestions">
         <div class="panel-head cyan">ADVISORY FEED</div>
-        <button class="btn" id="newSuggestionBtn">GENERATE NEW MOVE</button>
+        <p class="hint" style="padding:12px 16px 0;">Offline, rule-based nudges — always available even without an API key. JARVIS (the live conversation tab) can go far deeper than these.</p>
+        <button class="btn" id="newSuggestionBtn" style="margin:12px 16px;">GENERATE NEW MOVE</button>
         <div id="suggestionList" class="list"></div>
       </section>
 
       <!-- SETTINGS -->
       <section class="view hidden" id="view-settings">
-        <div class="panel-head amber">SYSTEM CONFIGURATION</div>
+        <div class="panel-head orange">SYSTEM CONFIGURATION</div>
         <div class="panel-body settings-body">
           <label>Law school start date
             <input type="date" id="lawSchoolStart" />
           </label>
+
+          <label>Anthropic API key (powers JARVIS conversation)
+            <input type="password" id="anthropicApiKey" placeholder="sk-ant-..." />
+          </label>
+          <label>Model
+            <input type="text" id="anthropicModel" placeholder="claude-sonnet-5" />
+          </label>
+          <label style="flex-direction:row;align-items:center;gap:8px;">
+            <input type="checkbox" id="voiceEnabledToggle" style="width:auto;" />
+            Speak JARVIS's replies aloud
+          </label>
+          <p class="hint">Get a key at console.anthropic.com — see the README for the exact steps and a cost/privacy note. The key lives only in this browser's local storage and is sent directly to Anthropic's API, nowhere else.</p>
+
           <label>Google OAuth Client ID
             <input type="text" id="googleClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" />
           </label>
-          <p class="hint">Need a Client ID? Open the README setup guide bundled with this app for step-by-step instructions (Google Cloud Console, OAuth consent screen, Web application credential, authorized origin).</p>
+          <p class="hint">Need a Client ID? See the README for step-by-step instructions (Google Cloud Console, OAuth consent screen, Web application credential, authorized origin).</p>
+
           <div class="btn-row">
             <button class="btn" id="saveSettingsBtn">SAVE</button>
             <button class="btn ghost" id="exportBtn">EXPORT DATA</button>

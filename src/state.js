@@ -8,7 +8,7 @@ export const STAGE_DEFS = [
   {
     id: 'stage-jd',
     title: 'JD // LAW SCHOOL',
-    sub: 'Enrollment & first year',
+    sub: 'Admitted — starting September',
   },
   {
     id: 'stage-intl',
@@ -28,18 +28,18 @@ export function defaultState() {
   const lawSchoolStart = `${year}-09-01`;
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     profile: {
       lawSchoolStart,
     },
     stages: STAGE_DEFS.map((s, i) => ({
       ...s,
-      progress: i === 0 ? 10 : 0,
+      progress: i === 0 ? 20 : 0, // admitted & enrolling counts as real progress on stage 1
     })),
     projects: [
       {
         id: uid(),
-        name: 'Law School Prep & Applications',
+        name: 'Law School — 1L Year',
         discipline: 'Law — International Law track',
         status: 'active',
         docId: null,
@@ -74,11 +74,26 @@ export function defaultState() {
     tasks: [],
     reminders: [],
     suggestionLog: [],
+    conversation: [],
     google: {
       clientId: '',
       connected: false,
     },
+    assistant: {
+      apiKey: '',
+      model: 'claude-sonnet-5',
+      voiceEnabled: true,
+      lastCheckInAt: null,
+    },
   };
+}
+
+// The mind sphere's node count grows with everything the panel actually knows:
+// fixed knowledge-base entries, registered projects/tasks, and conversation turns
+// exchanged with the assistant. This is what makes the sphere visibly grow over time.
+export function knowledgeNodeCount(state, knowledgeLength) {
+  const conversationTurns = state.conversation?.length || 0;
+  return knowledgeLength + state.projects.length * 3 + state.tasks.length + Math.floor(conversationTurns / 2);
 }
 
 export function daysUntil(dateStr) {

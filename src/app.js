@@ -1,17 +1,20 @@
 import { loadState, saveState, exportState, importStateFromFile, resetState, uid } from './storage.js';
-import { defaultState, computeStageStatuses, daysUntil } from './state.js';
+import { defaultState, computeStageStatuses, daysUntil, knowledgeNodeCount } from './state.js';
 import { generateSuggestion } from './suggestions.js';
+import { KNOWLEDGE, DOMAIN_LABELS, DOMAIN_COLORS } from './knowledge.js';
+import { MindSphere } from './sphere.js';
+import { runAssistantTurn, runProactiveCheckIn } from './assistant.js';
+import * as Voice from './voice.js';
 import * as Google from './google.js';
 
 let state = loadState(defaultState);
+let sphere = null;
+let anthropicHistory = []; // full Anthropic message history incl. tool blocks — session-only, not persisted
+let micActive = false;
+let micController = null;
 
 function persist() {
   saveState(state);
-}
-
-function touchProject(id) {
-  const p = state.projects.find((p) => p.id === id);
-  if (p) p.updatedAt = Date.now();
 }
 
 /* ---------------- CLOCK / STARDATE ---------------- */
@@ -433,16 +436,188 @@ function wireGoogle() {
   });
 }
 
+/* ---------------- KNOWLEDGE BASE ---------------- */
+function renderKnowledgeBase() {
+  const list = document.getElementById('knowledgeList');
+  const byDomain = {};
+  for (const k of KNOWLEDGE) (byDomain[k.domain] = byDomain[k.domain] || []).push(k);
+  list.innerHTML = Object.entries(byDomain)
+    .map(([domain, entries]) => {
+      const colorName = (DOMAIN_COLORS[domain] || 'rb-blue').replace('rb-', '');
+      return `
+      <div class="kb-group-label">${escapeHtml(DOMAIN_LABELS[domain] || domain)}</div>
+      ${entries
+        .map(
+          (e) => `
+        <div class="kb-entry kb-domain-${colorName}">
+          <div class="kb-entry-title">${escapeHtml(e.title)}</div>
+          <div class="kb-entry-body">${escapeHtml(e.content)}</div>
+        </div>`
+        )
+        .join('')}`;
+    })
+    .join('');
+}
+
+/* ---------------- MIND SPHERE ---------------- */
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function domainColorHex(domain) {
+  return cssVar(`--${DOMAIN_COLORS[domain] || 'rb-blue'}`);
+}
+
+let lastSphereNodeCount = -1;
+function updateSphere() {
+  const count = knowledgeNodeCount(state, KNOWLEDGE.length);
+  if (!sphere) return;
+  if (count !== lastSphereNodeCount) {
+    const specs = [];
+    for (const k of KNOWLEDGE) specs.push({ color: domainColorHex(k.domain) });
+    for (const p of state.projects) specs.push({ color: cssVar('--rb-violet') }, { color: cssVar('--rb-violet') }, { color: cssVar('--rb-violet') });
+    for (const t of state.tasks) specs.push({ color: t.done ? cssVar('--rb-green') : cssVar('--rb-yellow') });
+    const turns = state.conversation.length;
+    for (let i = 0; i < Math.floor(turns / 2); i++) specs.push({ color: cssVar('--rb-teal') });
+    sphere.setNodes(specs);
+    lastSphereNodeCount = count;
+  }
+  document.getElementById('sphereNodeCount').textContent = String(count);
+  document.getElementById('sphereEdgeCount').textContent = String(sphere.edges.length);
+  document.getElementById('sphereTurnCount').textContent = String(state.conversation.length);
+}
+
+/* ---------------- JARVIS CHAT ---------------- */
+function renderChat() {
+  const log = document.getElementById('chatLog');
+  if (!state.conversation.length) {
+    log.innerHTML = '<div class="chat-bubble system">JARVIS is ready. Set an Anthropic API key in SETTINGS, then start talking — try "what should I focus on this week?"</div>';
+    return;
+  }
+  log.innerHTML = state.conversation
+    .map((m) => {
+      if (m.role === 'system') return `<div class="chat-bubble system">${escapeHtml(m.text)}</div>`;
+      const who = m.role === 'user' ? 'YOU' : 'JARVIS';
+      return `<div class="chat-bubble ${m.role}"><span class="who">${who}</span>${escapeHtml(m.text)}</div>`;
+    })
+    .join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendMessage(text) {
+  if (!text || !text.trim()) return;
+  if (!state.assistant.apiKey) {
+    state.conversation.push({ role: 'system', text: 'No Anthropic API key set — add one in SETTINGS to talk to JARVIS.', ts: Date.now() });
+    persist();
+    renderAll();
+    return;
+  }
+  state.conversation.push({ role: 'user', text: text.trim(), ts: Date.now() });
+  persist();
+  renderAll();
+
+  try {
+    const result = await runAssistantTurn(state, anthropicHistory, text.trim());
+    anthropicHistory = result.history;
+    state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
+    persist();
+    renderAll();
+    if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+  } catch (err) {
+    state.conversation.push({ role: 'system', text: `JARVIS error: ${err.message}`, ts: Date.now() });
+    persist();
+    renderAll();
+  }
+}
+
+function wireChat() {
+  document.getElementById('chatForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const text = input.value;
+    input.value = '';
+    sendMessage(text);
+  });
+
+  const speakBtn = document.getElementById('speakToggleBtn');
+  speakBtn.addEventListener('click', () => {
+    state.assistant.voiceEnabled = !state.assistant.voiceEnabled;
+    if (!state.assistant.voiceEnabled) Voice.stopSpeaking();
+    speakBtn.textContent = `🔊 SPEAK REPLIES: ${state.assistant.voiceEnabled ? 'ON' : 'OFF'}`;
+    persist();
+  });
+
+  const micBtn = document.getElementById('micBtn');
+  if (!Voice.isRecognitionSupported()) {
+    micBtn.disabled = true;
+    micBtn.title = 'Speech recognition is not supported in this browser';
+  } else {
+    micController = Voice.createRecognizer({
+      onResult: (text) => {
+        document.getElementById('chatInput').value = text;
+        sendMessage(text);
+      },
+      onEnd: () => {
+        micActive = false;
+        micBtn.classList.remove('mic-on');
+      },
+      onError: () => {
+        micActive = false;
+        micBtn.classList.remove('mic-on');
+      },
+    });
+    micBtn.addEventListener('click', () => {
+      if (micActive) {
+        micController.stop();
+        micActive = false;
+        micBtn.classList.remove('mic-on');
+      } else {
+        micController.start();
+        micActive = true;
+        micBtn.classList.add('mic-on');
+      }
+    });
+  }
+
+  document.getElementById('checkInBtn').addEventListener('click', async () => {
+    if (!state.assistant.apiKey) {
+      alert('Add an Anthropic API key in SETTINGS first.');
+      return;
+    }
+    const result = await runProactiveCheckIn(state, anthropicHistory).catch((err) => {
+      state.conversation.push({ role: 'system', text: `JARVIS error: ${err.message}`, ts: Date.now() });
+      return null;
+    });
+    if (result) {
+      anthropicHistory = result.history;
+      state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
+      if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+    } else {
+      state.conversation.push({ role: 'system', text: 'JARVIS checked in — nothing urgent right now.', ts: Date.now() });
+    }
+    state.assistant.lastCheckInAt = Date.now();
+    persist();
+    renderAll();
+  });
+}
+
 /* ---------------- SETTINGS ---------------- */
 function renderSettings() {
   document.getElementById('lawSchoolStart').value = state.profile.lawSchoolStart;
   document.getElementById('googleClientId').value = state.google.clientId;
+  document.getElementById('anthropicApiKey').value = state.assistant.apiKey;
+  document.getElementById('anthropicModel').value = state.assistant.model;
+  document.getElementById('voiceEnabledToggle').checked = state.assistant.voiceEnabled;
+  setLamp('jarvis', state.assistant.apiKey ? 'on' : 'off');
 }
 
 function wireSettings() {
   document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     state.profile.lawSchoolStart = document.getElementById('lawSchoolStart').value || state.profile.lawSchoolStart;
     state.google.clientId = document.getElementById('googleClientId').value.trim();
+    state.assistant.apiKey = document.getElementById('anthropicApiKey').value.trim();
+    state.assistant.model = document.getElementById('anthropicModel').value.trim() || 'claude-sonnet-5';
+    state.assistant.voiceEnabled = document.getElementById('voiceEnabledToggle').checked;
     persist();
     renderAll();
   });
@@ -495,6 +670,34 @@ function renderAll() {
   renderDocsView();
   renderSettings();
   renderOverview();
+  renderKnowledgeBase();
+  renderChat();
+  updateSphere();
+
+  const speakBtn = document.getElementById('speakToggleBtn');
+  speakBtn.textContent = `🔊 SPEAK REPLIES: ${state.assistant.voiceEnabled ? 'ON' : 'OFF'}`;
+}
+
+const CHECKIN_INTERVAL_MS = 6 * 60 * 60 * 1000; // don't nag more than once per 6h automatically
+async function maybeAutoCheckIn() {
+  if (!state.assistant.apiKey) return;
+  const last = state.assistant.lastCheckInAt;
+  if (last && Date.now() - last < CHECKIN_INTERVAL_MS) return;
+  try {
+    const result = await runProactiveCheckIn(state, anthropicHistory);
+    state.assistant.lastCheckInAt = Date.now();
+    if (result) {
+      anthropicHistory = result.history;
+      state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
+      if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+      persist();
+      renderAll();
+    } else {
+      persist();
+    }
+  } catch (err) {
+    // silent — proactive check-ins should never interrupt with an error dialog
+  }
 }
 
 export function initApp() {
@@ -505,6 +708,10 @@ export function initApp() {
   wireSuggestions();
   wireGoogle();
   wireSettings();
+  wireChat();
+
+  sphere = new MindSphere(document.getElementById('mindSphere'));
+  sphere.start();
 
   tickClock();
   setInterval(tickClock, 1000);
@@ -512,4 +719,5 @@ export function initApp() {
 
   renderAll();
   checkAlertsTick();
+  setTimeout(maybeAutoCheckIn, 4000);
 }
