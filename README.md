@@ -56,6 +56,12 @@ step below.
   routine task details). This is what survives a page reload even though the
   raw conversation history otherwise wouldn't; delete any note with ✕ if it's
   wrong or you'd rather it forget.
+  JARVIS can also reconfigure the panel itself on request — edit or dismiss
+  reminders (`update_reminder`/`delete_reminder`), push back the law school
+  date, or turn her own voice off (`update_settings`), e.g. "turn your voice
+  off" or "law school got pushed to October." Your Anthropic API key and
+  model are the deliberate exception — those only ever change in SETTINGS,
+  never through conversation.
   Once your Google account is connected (see DOCS LINK below), JARVIS can also
   call `list_google_docs` and `read_google_doc` mid-conversation — read-only,
   same as everywhere else in this app — so it can actually discuss or give

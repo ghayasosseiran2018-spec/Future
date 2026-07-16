@@ -94,6 +94,39 @@ const TOOLS = [
     },
   },
   {
+    name: 'update_reminder',
+    description: "Edit an existing reminder by id — acknowledge/dismiss it, snooze it, or change its text/time/threshold. Use this instead of set_reminder when one already exists and just needs adjusting.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        reminderId: { type: 'string' },
+        acknowledged: { type: 'boolean', description: 'Set true to dismiss a fired time-based reminder.' },
+        snoozeDays: { type: 'number', description: 'Snooze a stale-project reminder for this many days.' },
+        text: { type: 'string' },
+        time: { type: 'string', description: 'New ISO datetime, for time-type reminders.' },
+        days: { type: 'number', description: 'New stale threshold in days, for stale-type reminders.' },
+      },
+      required: ['reminderId'],
+    },
+  },
+  {
+    name: 'delete_reminder',
+    description: 'Remove a reminder by id entirely.',
+    input_schema: { type: 'object', properties: { reminderId: { type: 'string' } }, required: ['reminderId'] },
+  },
+  {
+    name: 'update_settings',
+    description:
+      "Reconfigure the panel itself on the user's behalf: change the law school start date (moves the trajectory countdown) or toggle whether you speak your replies aloud. Use this when the user asks you directly to change one of these, e.g. \"turn your voice off\" or \"law school got pushed to October, update that.\" This does not cover your API key or model — those stay a manual, deliberate action in SETTINGS.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        lawSchoolStart: { type: 'string', description: 'New ISO date YYYY-MM-DD.' },
+        voiceEnabled: { type: 'boolean' },
+      },
+    },
+  },
+  {
     name: 'update_stage_progress',
     description: 'Adjust the completion percentage (0-100) of one of the three fixed trajectory stages: stage-jd, stage-intl, or stage-phd.',
     input_schema: {
@@ -205,6 +238,26 @@ async function executeTool(state, name, input) {
       });
       return { ok: true };
     }
+    case 'update_reminder': {
+      const r = state.reminders.find((r) => r.id === input.reminderId);
+      if (!r) return { ok: false, error: 'reminder not found' };
+      if (input.acknowledged != null) r.acknowledged = input.acknowledged;
+      if (input.snoozeDays != null) r.snoozedUntil = Date.now() + input.snoozeDays * 86400000;
+      if (input.text) r.text = input.text;
+      if (input.time) r.time = input.time;
+      if (input.days != null) r.days = input.days;
+      return { ok: true };
+    }
+    case 'delete_reminder': {
+      const before = state.reminders.length;
+      state.reminders = state.reminders.filter((r) => r.id !== input.reminderId);
+      return { ok: state.reminders.length < before };
+    }
+    case 'update_settings': {
+      if (input.lawSchoolStart) state.profile.lawSchoolStart = input.lawSchoolStart;
+      if (input.voiceEnabled != null) state.assistant.voiceEnabled = input.voiceEnabled;
+      return { ok: true };
+    }
     case 'update_stage_progress': {
       const s = state.stages.find((s) => s.id === input.stageId);
       if (!s) return { ok: false, error: 'stage not found' };
@@ -280,7 +333,9 @@ ${memoryList}
 
 Whenever you notice something durable worth remembering — a stated preference, a correction, a recurring behavioral pattern — call update_memory so you actually retain it next time, rather than re-learning it every session. Don't log routine task details there.
 
-Today's date: ${new Date().toDateString()}. Days until law school starts: ${d}.
+Today's date: ${new Date().toDateString()}. Days until law school starts: ${d} (law school start date: ${state.profile.lawSchoolStart}). Voice replies currently: ${state.assistant.voiceEnabled ? 'on' : 'off'}.
+
+You can reconfigure the panel itself when asked directly — update_settings for the law school date or your voice toggle, update_reminder/delete_reminder to edit or clear reminders (including dismissing ones that have fired). This is a real capability, not just something to describe: if the user says "turn your voice off" or "push law school back a week," call the tool rather than just acknowledging it. Your API key and model are the one exception — those stay a manual, deliberate choice in SETTINGS, never something to change via conversation.
 
 CURRENT TRAJECTORY STAGES:
 ${stagesList}
