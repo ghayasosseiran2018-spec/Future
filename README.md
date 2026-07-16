@@ -80,9 +80,13 @@ step below.
 - **ALERTS** — arm reminders either at a specific time, or "if project X goes
   stale for N days" (no logged update). Firing reminders light up the ALERTS
   lamp in the top bar and play a short tone while the tab is open.
-- **ADVISORY** — an offline, rule-based fallback: generate a suggested
-  creative/analytical move without needing an API key. JARVIS supersedes this
-  once it's configured, but it keeps working either way.
+- **ADVISORY** — two sources feed this one feed: an offline, rule-based
+  generator (GENERATE NEW MOVE, no API key needed), and every proactive
+  JARVIS check-in (auto, at most once per 6 hours, or manually via REQUEST
+  CHECK-IN on the JARVIS tab) — logged here automatically, tagged "JARVIS //"
+  with a violet border, so her unprompted observations and suggestions have
+  a permanent home you can browse instead of only living in the scrolling
+  chat transcript. The latest entry from either source also shows on OVERVIEW.
 - **SETTINGS** — set your law school start date (drives the trajectory
   countdown), your Anthropic API key + model (powers JARVIS), whether JARVIS
   speaks its replies aloud, your Google OAuth Client ID, export/import a JSON

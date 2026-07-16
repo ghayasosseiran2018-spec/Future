@@ -326,6 +326,7 @@ input:focus, select:focus, textarea:focus{outline:1px solid var(--rb-blue);}
 .settings-body label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-dim);letter-spacing:1px;margin-bottom:14px;max-width:460px;}
 
 .suggestion-card{border:1px solid var(--rb-teal);border-radius:10px;padding:12px 14px;background:var(--bg-deep);}
+.suggestion-card.jarvis{border-color:var(--rb-violet);}
 .suggestion-card .meta{font-size:10px;color:var(--text-dim);letter-spacing:1px;margin-bottom:6px;}
 
 /* ---------------- CALENDAR ---------------- */

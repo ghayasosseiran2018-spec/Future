@@ -15,21 +15,22 @@ const NO_CHECKIN = 'NO_CHECKIN_NEEDED';
 const TOOLS = [
   {
     name: 'add_task',
-    description: 'Add a new task to the task queue.',
+    description:
+      "Add a new task to the task queue. If it gives a due date, that task also appears on the CALENDAR tab automatically — the calendar is just every task with a due date, laid out by month. So \"add X to my calendar for Friday\" and \"add a task due Friday\" are the same action: call this with a due date.",
     input_schema: {
       type: 'object',
       properties: {
         title: { type: 'string' },
         projectId: { type: 'string', description: 'Optional project id to attach this task to.' },
         priority: { type: 'string', enum: ['high', 'med', 'low'] },
-        due: { type: 'string', description: 'Optional ISO date YYYY-MM-DD.' },
+        due: { type: 'string', description: 'Optional ISO date YYYY-MM-DD. Setting this is what puts it on the calendar.' },
       },
       required: ['title'],
     },
   },
   {
     name: 'update_task',
-    description: 'Update or complete an existing task by id.',
+    description: 'Update or complete an existing task by id. Changing due moves it on the CALENDAR tab; clearing it removes it from the calendar (it becomes unscheduled).',
     input_schema: {
       type: 'object',
       properties: {
@@ -62,7 +63,8 @@ const TOOLS = [
   },
   {
     name: 'update_project',
-    description: 'Update an existing project by id (status, name, or discipline).',
+    description:
+      'Update an existing project by id: status, name, discipline, or its Google Drive link. After reading a project\'s linked doc with read_google_doc, call this with lastWordCount (and docId if it wasn\'t linked yet) so the dashboard and future check-ins reflect what you just read, instead of only you knowing it for this conversation.',
     input_schema: {
       type: 'object',
       properties: {
@@ -70,6 +72,8 @@ const TOOLS = [
         status: { type: 'string', enum: ['active', 'paused', 'done'] },
         name: { type: 'string' },
         discipline: { type: 'string' },
+        docId: { type: 'string', description: 'Link this project to a Google Doc id (from list_google_docs).' },
+        lastWordCount: { type: 'number', description: 'Record a freshly-read word count for the linked doc; also stamps lastCheckedAt to now.' },
       },
       required: ['projectId'],
     },
@@ -180,6 +184,11 @@ async function executeTool(state, name, input) {
       if (input.status) p.status = input.status;
       if (input.name) p.name = input.name;
       if (input.discipline) p.discipline = input.discipline;
+      if (input.docId) p.docId = input.docId;
+      if (input.lastWordCount != null) {
+        p.lastWordCount = input.lastWordCount;
+        p.lastCheckedAt = Date.now();
+      }
       p.updatedAt = Date.now();
       return { ok: true };
     }
@@ -248,14 +257,19 @@ function knowledgeSummary() {
 function buildSystemPrompt(state) {
   const d = daysUntil(state.profile.lawSchoolStart);
   const tasksList = state.tasks.map((t) => `- [${t.id}] "${t.title}" done=${t.done} priority=${t.priority} due=${t.due || 'none'} project=${t.project || 'none'}`).join('\n') || '(none yet)';
-  const projectsList = state.projects.map((p) => `- [${p.id}] "${p.name}" discipline="${p.discipline}" status=${p.status} lastUpdated=${new Date(p.updatedAt).toLocaleDateString()}`).join('\n') || '(none yet)';
+  const projectsList = state.projects.map((p) => {
+    const docInfo = p.docId
+      ? `docId=${p.docId} lastKnownWordCount=${p.lastWordCount ?? 'unread'} lastCheckedAt=${p.lastCheckedAt ? new Date(p.lastCheckedAt).toLocaleString() : 'never'}`
+      : 'docId=none (not linked to a Google Doc)';
+    return `- [${p.id}] "${p.name}" discipline="${p.discipline}" status=${p.status} lastUpdated=${new Date(p.updatedAt).toLocaleDateString()} ${docInfo}`;
+  }).join('\n') || '(none yet)';
   const remindersList = state.reminders.map((r) => `- [${r.id}] "${r.text}" type=${r.type} ${r.type === 'time' ? `time=${r.time}` : `days=${r.days} projectId=${r.projectId}`}`).join('\n') || '(none yet)';
   const stagesList = state.stages.map((s) => `- ${s.id}: ${s.title} — ${s.progress}% complete`).join('\n');
   const memoryList = (state.memory?.notes || []).map((n) => `- (${n.category}) ${n.text}`).join('\n') || '(nothing remembered yet)';
 
   return `You are JARVIS, the voice of OVERWATCH — a personal command console for one specific life trajectory: starting a JD this September, becoming a practicing international lawyer, then pursuing a PhD in philosophy on phenomenology and critical political/legal thought of vitality, time, and love.
 
-Your job: be a genuine thinking partner. Converse naturally and briefly (this may be read aloud, so avoid long lists in prose — keep replies to a few sentences unless asked for depth). Be proactive: notice when something in the state below is stale, approaching, or unbalanced, and say so or ask about it — don't wait to only be asked. Ask real clarifying questions when priorities are ambiguous, then use your tools to actually update the schedule/tasks/projects/reminders rather than just describing what should happen.
+Your job: be a genuine thinking partner. Converse naturally and briefly (this may be read aloud, so avoid long lists in prose — keep replies to a few sentences unless asked for depth). Be proactive: notice when something in the state below is stale, approaching, or unbalanced, and say so or ask about it — don't wait to only be asked. Ask real clarifying questions when priorities are ambiguous, then use your tools to actually update the schedule/tasks/projects/reminders rather than just describing what should happen. Whenever you're the one initiating (a proactive check-in, not a direct reply to a question), your message is automatically also logged to the ADVISORY tab, so the user can find it again later without scrolling back through chat — you don't need a tool call for that, it happens for every check-in.
 
 You have a detailed knowledge base about this exact trajectory (law school, international law careers, phenomenology, critical theory, PhD path) — draw on it specifically and concretely, never generically.
 

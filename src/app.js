@@ -424,8 +424,8 @@ function renderSuggestions() {
     .reverse()
     .map(
       (s) => `
-      <div class="suggestion-card">
-        <div class="meta">${escapeHtml(s.meta)} — ${new Date(s.shownAt).toLocaleString()}</div>
+      <div class="suggestion-card ${s.category === 'jarvis' ? 'jarvis' : ''}">
+        <div class="meta">${s.category === 'jarvis' ? 'JARVIS // ' : ''}${escapeHtml(s.meta)} — ${new Date(s.shownAt).toLocaleString()}</div>
         <div>${escapeHtml(s.text)}</div>
       </div>`
     )
@@ -441,6 +441,20 @@ function wireSuggestions() {
     renderAll();
   };
   document.getElementById('newSuggestionBtn').addEventListener('click', handler);
+}
+
+// Every proactive JARVIS check-in (auto or manually requested) also lands here,
+// so it's findable on the ADVISORY tab and the OVERVIEW summary rather than
+// only living in the scrolling chat transcript.
+function logJarvisInsight(text) {
+  state.suggestionLog.push({
+    id: `${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    category: 'jarvis',
+    meta: 'PROACTIVE CHECK-IN',
+    text,
+    shownAt: Date.now(),
+  });
+  if (state.suggestionLog.length > 50) state.suggestionLog.shift();
 }
 
 /* ---------------- GOOGLE DOCS ---------------- */
@@ -704,6 +718,7 @@ function wireChat() {
     if (result) {
       anthropicHistory = result.history;
       state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
+      logJarvisInsight(result.reply);
       if (state.assistant.voiceEnabled) speakReply(result.reply);
     } else {
       state.conversation.push({ role: 'system', text: 'JARVIS checked in — nothing urgent right now.', ts: Date.now() });
@@ -806,6 +821,7 @@ async function maybeAutoCheckIn() {
     if (result) {
       anthropicHistory = result.history;
       state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
+      logJarvisInsight(result.reply);
       if (state.assistant.voiceEnabled) speakReply(result.reply);
       persist();
       renderAll();
