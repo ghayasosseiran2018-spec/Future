@@ -37,6 +37,33 @@ Netlify — any static host works, since there's no server code), deploy this
 folder as-is and use that URL as your authorized origin in the Google Cloud
 step below.
 
+## Hosting on GitHub Pages
+
+A workflow (`.github/workflows/deploy-pages.yml`) is already set up to
+publish this repo to GitHub Pages automatically on every push to `main`.
+One manual, one-time step is required to switch it on — this repo's settings
+aren't something a workflow file can turn on by itself:
+
+1. On GitHub, go to this repo's **Settings → Pages**.
+2. Under **Build and deployment → Source**, choose **GitHub Actions**.
+3. Push to `main` (or re-run the workflow from the **Actions** tab) — your
+   URL will appear at the top of the Pages settings page, typically
+   `https://<username>.github.io/<repo>/`.
+
+**Worth knowing before you flip that switch:** GitHub Pages sites are public
+by default, so the app's source (this HTML/CSS/JS) becomes visible to
+anyone with the URL. That's fine for what's actually sensitive here — your
+tasks, projects, conversation log, and API keys all live only in *your*
+browser's local storage and are never part of the deployed files — but
+double-check you're comfortable with the code itself being public before
+enabling it. If you'd rather it stay private, use the "run it locally"
+instructions above instead, or a host that supports private static sites.
+
+Once it's live, add that Pages URL as an authorized JavaScript origin in the
+Google Cloud step below if you want Docs Link to work from the hosted
+version too (it's origin-specific — localhost and the Pages URL each need
+their own entry, or their own Client ID).
+
 ## Using the panel
 
 - **JARVIS** — the home tab. A rotating constellation sphere (the "mind")
