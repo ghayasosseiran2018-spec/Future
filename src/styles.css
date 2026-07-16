@@ -321,11 +321,28 @@ input:focus, select:focus, textarea:focus{outline:1px solid var(--rb-blue);}
 
 .empty-note{color:var(--text-dim);font-size:12px;padding:8px 4px;}
 .hint{color:var(--text-dim);font-size:12px;line-height:1.5;}
+.hint code{background:var(--bg-deep);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--rb-teal);}
 
 .settings-body label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-dim);letter-spacing:1px;margin-bottom:14px;max-width:460px;}
 
 .suggestion-card{border:1px solid var(--rb-teal);border-radius:10px;padding:12px 14px;background:var(--bg-deep);}
 .suggestion-card .meta{font-size:10px;color:var(--text-dim);letter-spacing:1px;margin-bottom:6px;}
+
+/* ---------------- CALENDAR ---------------- */
+.calendar-toolbar{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-panel-raised);border:1px solid var(--line);border-top:none;}
+.calendar-month-label{font-family:var(--font-display);font-size:13px;letter-spacing:2px;flex:1;text-align:center;color:var(--rb-yellow);}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:12px 16px;background:var(--bg-panel-raised);border:1px solid var(--line);border-top:none;}
+.calendar-dow{font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--text-dim);text-align:center;padding-bottom:4px;}
+.calendar-day{min-height:82px;background:var(--bg-deep);border:1px solid var(--line);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:3px;}
+.calendar-day.outside{opacity:0.35;}
+.calendar-day.today{border-color:var(--rb-blue);box-shadow:0 0 8px -2px var(--rb-blue) inset;}
+.calendar-day-num{font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+.calendar-day.today .calendar-day-num{color:var(--rb-blue);font-weight:bold;}
+.calendar-task-chip{font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.calendar-task-chip.priority-high{border-color:var(--signal-warn); color:var(--signal-warn);}
+.calendar-task-chip.priority-med{border-color:var(--rb-orange); color:var(--rb-orange);}
+.calendar-task-chip.priority-low{border-color:var(--text-dim); color:var(--text-dim);}
+.calendar-more{font-size:9.5px;color:var(--text-dim);}
 
 /* ---------------- KNOWLEDGE BASE ---------------- */
 .kb-domain-red{border-left:3px solid var(--rb-red);}

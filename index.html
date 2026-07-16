@@ -45,6 +45,7 @@
       <button class="navbtn active" data-view="jarvis">JARVIS</button>
       <button class="navbtn" data-view="overview">OVERVIEW</button>
       <button class="navbtn" data-view="tasks">TASK QUEUE</button>
+      <button class="navbtn" data-view="calendar">CALENDAR</button>
       <button class="navbtn" data-view="projects">PROJECT REGISTRY</button>
       <button class="navbtn" data-view="knowledge">KNOWLEDGE BASE</button>
       <button class="navbtn" data-view="docs">DOCS LINK</button>
@@ -132,6 +133,22 @@
         <div id="taskList" class="list"></div>
       </section>
 
+      <!-- CALENDAR -->
+      <section class="view hidden" id="view-calendar">
+        <div class="panel-head cyan">TASK CALENDAR</div>
+        <div class="calendar-toolbar">
+          <button class="btn ghost" id="calPrevBtn">‹ PREV</button>
+          <div class="calendar-month-label" id="calMonthLabel">--</div>
+          <button class="btn ghost" id="calNextBtn">NEXT ›</button>
+          <button class="btn ghost" id="calTodayBtn">TODAY</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="panel-body">
+          <div class="kb-group-label">UNSCHEDULED TASKS</div>
+          <div id="calendarUnscheduled" class="list" style="border-radius:8px;"></div>
+        </div>
+      </section>
+
       <!-- PROJECTS -->
       <section class="view hidden" id="view-projects">
         <div class="panel-head violet">PROJECT REGISTRY</div>
@@ -161,6 +178,7 @@
       <section class="view hidden" id="view-docs">
         <div class="panel-head orange">GOOGLE DOCS LINK</div>
         <div class="panel-body">
+          <p class="hint">🔒 <strong>Read-only, always.</strong> This connects with Google's <code>drive.readonly</code> and <code>documents.readonly</code> scopes — it can list and read your docs' text and word counts, and cannot edit, create, delete, or move anything in your Drive. Those permissions aren't in the scope this app ever requests.</p>
           <p class="hint">Connect your Google account to pull live word counts and last-edited timestamps for docs linked to your projects. Requires a Client ID — see SETTINGS.</p>
           <button class="btn" id="googleConnectBtn">CONNECT GOOGLE ACCOUNT</button>
           <button class="btn ghost" id="googleRefreshBtn">REFRESH DOC DATA</button>

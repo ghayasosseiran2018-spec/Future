@@ -56,6 +56,9 @@ step below.
   registered projects, pending alerts, and the latest advisory suggestion.
 - **TASK QUEUE** — add/complete/delete tasks, optionally tied to a project,
   with priority and due date.
+- **CALENDAR** — every task with a due date, laid out on a month grid
+  color-coded by priority; PREV/NEXT/TODAY to navigate, with tasks that have
+  no due date listed separately below so nothing gets lost off-grid.
 - **PROJECT REGISTRY** — register each project with its academic
   discipline/field (e.g. "Philosophy — Phenomenology", "Law — International
   Law"). JARVIS and the advisory engine both read this to tailor what they say.
@@ -103,6 +106,14 @@ varies). No extra setup, no extra cost — if it's not supported, JARVIS
 quietly falls back to typing only.
 
 ## Setting up live Google Docs tracking
+
+**This is read-only and cannot be otherwise.** The app requests exactly two
+OAuth scopes — `drive.readonly` and `documents.readonly` — which let it list
+your Google Docs and read their text/word counts. Google does not grant edit,
+create, delete, or move permissions under those scopes; there is no code
+path in this app that could touch your Drive even if it tried. Nothing
+connects until you explicitly click CONNECT GOOGLE ACCOUNT in DOCS LINK, and
+until then the app has no access to your Drive at all.
 
 This app never asks you for a password or a client secret — it uses Google's
 own client-side sign-in (Google Identity Services), so the OAuth Client ID

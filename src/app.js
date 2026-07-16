@@ -192,6 +192,80 @@ function wireTasks() {
   });
 }
 
+/* ---------------- CALENDAR ---------------- */
+const today = new Date();
+let calYear = today.getFullYear();
+let calMonth = today.getMonth();
+const DOW_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const MONTH_LABELS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function renderCalendar() {
+  document.getElementById('calMonthLabel').textContent = `${MONTH_LABELS[calMonth]} ${calYear}`;
+
+  const tasksByDate = {};
+  for (const t of state.tasks) {
+    if (!t.due) continue;
+    (tasksByDate[t.due] = tasksByDate[t.due] || []).push(t);
+  }
+
+  const firstOfMonth = new Date(calYear, calMonth, 1);
+  const gridStart = new Date(calYear, calMonth, 1 - firstOfMonth.getDay());
+  const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const grid = document.getElementById('calendarGrid');
+  let html = DOW_LABELS.map((d) => `<div class="calendar-dow">${d}</div>`).join('');
+
+  for (let i = 0; i < 42; i++) {
+    const cell = new Date(gridStart);
+    cell.setDate(gridStart.getDate() + i);
+    const key = dateKey(cell.getFullYear(), cell.getMonth(), cell.getDate());
+    const outside = cell.getMonth() !== calMonth;
+    const isToday = key === todayKey;
+    const dayTasks = tasksByDate[key] || [];
+    const shown = dayTasks.slice(0, 3);
+    const rest = dayTasks.length - shown.length;
+
+    html += `
+      <div class="calendar-day ${outside ? 'outside' : ''} ${isToday ? 'today' : ''}">
+        <div class="calendar-day-num">${cell.getDate()}</div>
+        ${shown.map((t) => `<div class="calendar-task-chip priority-${t.priority}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}
+        ${rest > 0 ? `<div class="calendar-more">+${rest} more</div>` : ''}
+      </div>`;
+  }
+  grid.innerHTML = html;
+
+  const unscheduled = state.tasks.filter((t) => !t.due && !t.done);
+  document.getElementById('calendarUnscheduled').innerHTML = unscheduled.length
+    ? unscheduled
+        .map(
+          (t) => `<div class="row"><div class="row-main">${escapeHtml(t.title)}</div><span class="tag priority-${t.priority}">${t.priority.toUpperCase()}</span></div>`
+        )
+        .join('')
+    : '<div class="empty-note">Every active task has a due date.</div>';
+}
+
+function wireCalendar() {
+  document.getElementById('calPrevBtn').addEventListener('click', () => {
+    calMonth -= 1;
+    if (calMonth < 0) { calMonth = 11; calYear -= 1; }
+    renderCalendar();
+  });
+  document.getElementById('calNextBtn').addEventListener('click', () => {
+    calMonth += 1;
+    if (calMonth > 11) { calMonth = 0; calYear += 1; }
+    renderCalendar();
+  });
+  document.getElementById('calTodayBtn').addEventListener('click', () => {
+    calYear = today.getFullYear();
+    calMonth = today.getMonth();
+    renderCalendar();
+  });
+}
+
 /* ---------------- PROJECTS ---------------- */
 function renderProjects() {
   const list = document.getElementById('projectList');
@@ -694,6 +768,7 @@ function renderAll() {
   renderCountdown();
   populateProjectSelects();
   renderTasks();
+  renderCalendar();
   renderProjects();
   renderReminders();
   renderSuggestions();
@@ -734,6 +809,7 @@ async function maybeAutoCheckIn() {
 export function initApp() {
   wireNav();
   wireTasks();
+  wireCalendar();
   wireProjects();
   wireReminders();
   wireSuggestions();
