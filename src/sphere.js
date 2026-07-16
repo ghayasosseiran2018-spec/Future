@@ -134,9 +134,10 @@ export class MindSphere {
 
     const projected = this.nodes.map((n) => ({ ...this._project(n), color: n.color }));
 
-    // faint outer ring (Newton's-rings nod)
+    // faint outer ring (Newton's-rings nod) — warm ink line, drawn for a
+    // light parchment ground rather than a dark console screen
     ctx.save();
-    ctx.strokeStyle = 'rgba(180,190,220,0.08)';
+    ctx.strokeStyle = 'rgba(90,75,48,0.12)';
     for (let r = half * 0.3; r < half * 0.95; r += half * 0.16) {
       ctx.beginPath();
       ctx.arc(half, half, r, 0, Math.PI * 2);
@@ -151,8 +152,8 @@ export class MindSphere {
       const a = projected[e.a], b = projected[e.b];
       if (!a || !b) continue;
       const depth = (a.z + b.z) / 2;
-      const alpha = 0.05 + Math.max(0, (depth + 1) / 2) * 0.16;
-      ctx.strokeStyle = `rgba(200,210,240,${alpha.toFixed(3)})`;
+      const alpha = 0.08 + Math.max(0, (depth + 1) / 2) * 0.22;
+      ctx.strokeStyle = `rgba(90,75,48,${alpha.toFixed(3)})`;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
