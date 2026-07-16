@@ -52,7 +52,7 @@ export async function listGoogleDocs() {
   return data.files || [];
 }
 
-function countWordsInDoc(doc) {
+function extractText(doc) {
   let text = '';
   const content = doc.body?.content || [];
   for (const el of content) {
@@ -61,18 +61,42 @@ function countWordsInDoc(doc) {
       if (e.textRun?.content) text += e.textRun.content;
     }
   }
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  return words.length;
+  return text;
 }
 
-export async function getDocSnapshot(docId) {
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+async function fetchDoc(docId) {
   if (!accessToken) throw new Error('Not connected to Google yet.');
   const url = `https://docs.googleapis.com/v1/documents/${docId}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) throw new Error(`Docs API error: ${res.status}`);
-  const doc = await res.json();
+  return res.json();
+}
+
+export async function getDocSnapshot(docId) {
+  const doc = await fetchDoc(docId);
   return {
     title: doc.title,
-    wordCount: countWordsInDoc(doc),
+    wordCount: countWords(extractText(doc)),
+  };
+}
+
+const MAX_DOC_CHARS = 8000; // keeps a single doc read from blowing up the assistant's context/cost
+
+// Read-only full text of a doc, for JARVIS to actually discuss/analyze — never
+// used to write back. Truncated for anything long; the truncation is reported
+// so JARVIS can tell the user it only saw part of the document.
+export async function getDocFullText(docId) {
+  const doc = await fetchDoc(docId);
+  const text = extractText(doc);
+  const truncated = text.length > MAX_DOC_CHARS;
+  return {
+    title: doc.title,
+    wordCount: countWords(text),
+    text: truncated ? text.slice(0, MAX_DOC_CHARS) : text,
+    truncated,
   };
 }

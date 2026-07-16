@@ -29,9 +29,25 @@ export class MindSphere {
     this.angleX = 0.25;
     this.nodes = [];
     this.edges = [];
+    this.speaking = false;
+    this.energy = 0; // 0..1, spikes on each spoken word boundary and decays each frame
     this._raf = null;
     this._resize();
     window.addEventListener('resize', () => this._resize());
+  }
+
+  // Called while JARVIS is actively speaking (true) or once it stops (false) —
+  // speeds up rotation for the duration so the sphere visibly "comes alive"
+  // while talking, rather than spinning at the same idle pace always.
+  setSpeaking(active) {
+    this.speaking = active;
+    if (!active) this.energy = 0;
+  }
+
+  // Called on each spoken word/sentence boundary to give the sphere a quick,
+  // organic pulse roughly timed to speech, on top of the steady speaking boost.
+  pulse(amount = 0.5) {
+    this.energy = Math.min(1, this.energy + amount);
   }
 
   _resize() {
@@ -78,7 +94,9 @@ export class MindSphere {
     const loop = (t) => {
       const dt = Math.min(0.05, (t - last) / 1000);
       last = t;
-      this.angleY += dt * 0.18;
+      const speed = 0.18 + (this.speaking ? 0.3 : 0) + this.energy * 0.5;
+      this.angleY += dt * speed;
+      this.energy = Math.max(0, this.energy - dt * 1.1);
       this._draw();
       this._raf = requestAnimationFrame(loop);
     };
@@ -141,14 +159,15 @@ export class MindSphere {
       ctx.stroke();
     }
 
-    // nodes, back-to-front
+    // nodes, back-to-front — pulse size/brightness with speaking energy
+    const pulse = 1 + this.energy * 0.7;
     projected
       .map((p, i) => ({ ...p, i }))
       .sort((a, b) => a.z - b.z)
       .forEach((p) => {
         const depth = (p.z + 1) / 2; // 0 back, 1 front
-        const r = 1.1 + depth * 2.1;
-        const alpha = 0.35 + depth * 0.65;
+        const r = (1.1 + depth * 2.1) * pulse;
+        const alpha = Math.min(1, (0.35 + depth * 0.65) * (1 + this.energy * 0.4));
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3);
         grad.addColorStop(0, p.color);
         grad.addColorStop(1, 'rgba(0,0,0,0)');

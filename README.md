@@ -45,13 +45,21 @@ step below.
   an idea, or reorganize your priorities — it can actually add/update tasks,
   projects, reminders, and trajectory progress as it talks, not just suggest.
   Use REQUEST CHECK-IN to have it proactively review your state on demand;
-  it also does this automatically at most once every 6 hours.
+  it also does this automatically at most once every 6 hours. Replies are
+  spoken in a British English voice when SPEAK REPLIES is on (your browser's
+  built-in voices — quality/gender options vary by browser and OS), and the
+  sphere visibly speeds up and pulses in time with speech, settling back to
+  its idle rotation once JARVIS stops talking.
   Below the sphere is **LEARNED MEMORY**: durable facts, preferences, and
   patterns JARVIS has chosen to remember (it decides what's worth keeping via
   its own `update_memory` tool — corrections and recurring patterns, not
   routine task details). This is what survives a page reload even though the
   raw conversation history otherwise wouldn't; delete any note with ✕ if it's
   wrong or you'd rather it forget.
+  Once your Google account is connected (see DOCS LINK below), JARVIS can also
+  call `list_google_docs` and `read_google_doc` mid-conversation — read-only,
+  same as everywhere else in this app — so it can actually discuss or give
+  feedback on a document's real content instead of guessing.
 - **OVERVIEW** — at-a-glance status: countdown to law school, active tasks,
   registered projects, pending alerts, and the latest advisory suggestion.
 - **TASK QUEUE** — add/complete/delete tasks, optionally tied to a project,

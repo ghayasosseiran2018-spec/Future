@@ -606,6 +606,14 @@ function renderChat() {
   log.scrollTop = log.scrollHeight;
 }
 
+function speakReply(text) {
+  Voice.speak(text, {
+    onStart: () => sphere?.setSpeaking(true),
+    onBoundary: () => sphere?.pulse(0.45),
+    onEnd: () => sphere?.setSpeaking(false),
+  });
+}
+
 async function sendMessage(text) {
   if (!text || !text.trim()) return;
   if (!state.assistant.apiKey) {
@@ -624,7 +632,7 @@ async function sendMessage(text) {
     state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
     persist();
     renderAll();
-    if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+    if (state.assistant.voiceEnabled) speakReply(result.reply);
   } catch (err) {
     state.conversation.push({ role: 'system', text: `JARVIS error: ${err.message}`, ts: Date.now() });
     persist();
@@ -644,7 +652,10 @@ function wireChat() {
   const speakBtn = document.getElementById('speakToggleBtn');
   speakBtn.addEventListener('click', () => {
     state.assistant.voiceEnabled = !state.assistant.voiceEnabled;
-    if (!state.assistant.voiceEnabled) Voice.stopSpeaking();
+    if (!state.assistant.voiceEnabled) {
+      Voice.stopSpeaking();
+      sphere?.setSpeaking(false);
+    }
     speakBtn.textContent = `🔊 SPEAK REPLIES: ${state.assistant.voiceEnabled ? 'ON' : 'OFF'}`;
     persist();
   });
@@ -693,7 +704,7 @@ function wireChat() {
     if (result) {
       anthropicHistory = result.history;
       state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
-      if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+      if (state.assistant.voiceEnabled) speakReply(result.reply);
     } else {
       state.conversation.push({ role: 'system', text: 'JARVIS checked in — nothing urgent right now.', ts: Date.now() });
     }
@@ -795,7 +806,7 @@ async function maybeAutoCheckIn() {
     if (result) {
       anthropicHistory = result.history;
       state.conversation.push({ role: 'assistant', text: result.reply, ts: Date.now(), toolCalls: result.toolCalls });
-      if (state.assistant.voiceEnabled) Voice.speak(result.reply);
+      if (state.assistant.voiceEnabled) speakReply(result.reply);
       persist();
       renderAll();
     } else {

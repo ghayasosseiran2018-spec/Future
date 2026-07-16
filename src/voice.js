@@ -33,22 +33,39 @@ export function createRecognizer({ onResult, onEnd, onError }) {
   };
 }
 
+// JARVIS speaks with a British English voice — preferring a female-sounding
+// one where the platform's voice list identifies it as such, since available
+// names/genders vary by browser and OS with no reliable structured signal.
+const FEMALE_NAME_HINTS = /female|kate|serena|hazel|libby|sonia|fiona|amy|emma|olivia/i;
+
 let voicesCache = null;
 function pickVoice() {
   if (!isSynthesisSupported()) return null;
   voicesCache = voicesCache || window.speechSynthesis.getVoices();
   if (!voicesCache.length) voicesCache = window.speechSynthesis.getVoices();
-  return voicesCache.find((v) => /en[-_]/i.test(v.lang)) || voicesCache[0] || null;
+
+  const british = voicesCache.filter((v) => /^en-gb$/i.test(v.lang));
+  const britishFemale = british.find((v) => FEMALE_NAME_HINTS.test(v.name));
+  if (britishFemale) return britishFemale;
+  if (british.length) return british[0];
+
+  const anyEnglish = voicesCache.filter((v) => /^en[-_]/i.test(v.lang));
+  return anyEnglish[0] || voicesCache[0] || null;
 }
 
-export function speak(text) {
+export function speak(text, handlers = {}) {
   if (!isSynthesisSupported() || !text) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   const voice = pickVoice();
   if (voice) utter.voice = voice;
-  utter.rate = 1.02;
-  utter.pitch = 0.95;
+  utter.lang = 'en-GB';
+  utter.rate = 1.0;
+  utter.pitch = 1.05;
+  utter.onstart = () => handlers.onStart?.();
+  utter.onend = () => handlers.onEnd?.();
+  utter.onboundary = (e) => handlers.onBoundary?.(e);
+  utter.onerror = () => handlers.onEnd?.();
   window.speechSynthesis.speak(utter);
 }
 

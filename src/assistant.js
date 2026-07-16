@@ -7,6 +7,7 @@
 import { KNOWLEDGE, DOMAIN_LABELS } from './knowledge.js';
 import { daysUntil } from './state.js';
 import { uid } from './storage.js';
+import * as Google from './google.js';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const NO_CHECKIN = 'NO_CHECKIN_NEEDED';
@@ -113,9 +114,23 @@ const TOOLS = [
       required: ['note'],
     },
   },
+  {
+    name: 'list_google_docs',
+    description: 'List the documents in the user\'s Google Drive (read-only). Only works if their Google account is connected. Use this to find a doc before reading it, e.g. to locate their personal statement or reading notes.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'read_google_doc',
+    description: "Read the full text of one of the user's Google Docs, read-only — you cannot and will never edit, create, or delete anything in their Drive. Use this to actually discuss, review, or give feedback on a document's real content rather than guessing. Get the docId from list_google_docs first, or from a project's linked doc.",
+    input_schema: {
+      type: 'object',
+      properties: { docId: { type: 'string' } },
+      required: ['docId'],
+    },
+  },
 ];
 
-function executeTool(state, name, input) {
+async function executeTool(state, name, input) {
   switch (name) {
     case 'add_task': {
       const task = {
@@ -197,6 +212,24 @@ function executeTool(state, name, input) {
       if (state.memory.notes.length > 60) state.memory.notes.shift();
       return { ok: true };
     }
+    case 'list_google_docs': {
+      if (!Google.getAccessToken()) return { ok: false, error: 'Google account not connected — ask the user to connect it in DOCS LINK first.' };
+      try {
+        const docs = await Google.listGoogleDocs();
+        return { ok: true, docs: docs.map((d) => ({ id: d.id, name: d.name, modifiedTime: d.modifiedTime })) };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    }
+    case 'read_google_doc': {
+      if (!Google.getAccessToken()) return { ok: false, error: 'Google account not connected — ask the user to connect it in DOCS LINK first.' };
+      try {
+        const snap = await Google.getDocFullText(input.docId);
+        return { ok: true, title: snap.title, wordCount: snap.wordCount, truncated: snap.truncated, text: snap.text };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    }
     default:
       return { ok: false, error: 'unknown tool' };
   }
@@ -225,6 +258,8 @@ function buildSystemPrompt(state) {
 Your job: be a genuine thinking partner. Converse naturally and briefly (this may be read aloud, so avoid long lists in prose — keep replies to a few sentences unless asked for depth). Be proactive: notice when something in the state below is stale, approaching, or unbalanced, and say so or ask about it — don't wait to only be asked. Ask real clarifying questions when priorities are ambiguous, then use your tools to actually update the schedule/tasks/projects/reminders rather than just describing what should happen.
 
 You have a detailed knowledge base about this exact trajectory (law school, international law careers, phenomenology, critical theory, PhD path) — draw on it specifically and concretely, never generically.
+
+GOOGLE DRIVE: ${Google.getAccessToken() ? 'connected — use list_google_docs and read_google_doc whenever discussing a specific document would help (e.g. giving feedback on a draft, checking what a project actually says). Both are strictly read-only; you have no ability to edit, create, or delete anything in their Drive, ever.' : 'not connected — if reading a document would help, tell the user to connect it in DOCS LINK first rather than guessing at content.'}
 
 LEARNED MEMORY (persists across sessions — this is what you actually remember about the user from past conversations, since raw chat history does not carry over between browser reloads):
 ${memoryList}
@@ -312,15 +347,16 @@ export async function runAssistantTurn(state, history, userText) {
       return { reply: text, toolCalls, history: messages };
     }
 
-    const toolResults = toolUses.map((tu) => {
-      const result = executeTool(state, tu.name, tu.input || {});
+    const toolResults = [];
+    for (const tu of toolUses) {
+      const result = await executeTool(state, tu.name, tu.input || {});
       toolCalls.push({ name: tu.name, input: tu.input, result });
-      return {
+      toolResults.push({
         type: 'tool_result',
         tool_use_id: tu.id,
         content: JSON.stringify(result),
-      };
-    });
+      });
+    }
     messages.push({ role: 'user', content: toolResults });
   }
 
