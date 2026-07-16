@@ -17,6 +17,7 @@ let anthropicHistory = seedHistoryFromConversation(state.conversation);
 let micActive = false;
 let micController = null;
 let continuousVoice = false; // hands-free listening mode — resets each page load (browsers require a fresh user gesture to grant mic access)
+let recognitionRunning = false; // tracks the recognizer's actual on/off state, separate from continuousVoice (the user's intent)
 
 function persist() {
   saveState(state);
@@ -623,10 +624,23 @@ function renderChat() {
 
 function speakReply(text) {
   Voice.speak(text, {
-    onStart: () => sphere?.setSpeaking(true),
+    onStart: () => {
+      sphere?.setSpeaking(true);
+      // Recognition can end itself between turns (even in continuous mode);
+      // make sure it's actually listening right as she starts talking, since
+      // that's exactly the window barge-in needs to catch.
+      if (continuousVoice && !recognitionRunning) {
+        try { micController.start(); } catch (err) { /* already running */ }
+      }
+    },
     onBoundary: () => sphere?.pulse(0.45),
     onEnd: () => sphere?.setSpeaking(false),
   });
+}
+
+function interruptJarvis() {
+  Voice.stopSpeaking();
+  sphere?.setSpeaking(false);
 }
 
 async function sendMessage(text) {
@@ -695,24 +709,27 @@ function wireChat() {
       onInterim: (text) => {
         document.getElementById('chatInput').value = text;
       },
-      // The instant real speech is detected, cut JARVIS off if she's mid-reply —
-      // true barge-in, not just "wait for her to finish." Works best with
-      // headphones, since without them the mic can occasionally pick up her
-      // own voice through the speakers and mistake it for an interruption.
+      // Earliest available signal of the user making sound — cuts JARVIS off
+      // if she's mid-reply. Not foolproof without hardware echo cancellation
+      // (works best with headphones), which is why the manual INTERRUPT
+      // button next to it is the guaranteed fallback, not just a nicety.
       onSpeechStart: () => {
-        if (window.speechSynthesis?.speaking) {
-          Voice.stopSpeaking();
-          sphere?.setSpeaking(false);
-        }
+        if (window.speechSynthesis?.speaking) interruptJarvis();
+      },
+      onStart: () => {
+        recognitionRunning = true;
       },
       onEnd: () => {
+        recognitionRunning = false;
         document.getElementById('chatInput').value = '';
         // Browsers stop recognition after a pause even in continuous mode —
         // restart automatically so "hands-free" actually stays hands-free,
         // unless the user (or an unrecoverable error) turned it off.
         if (continuousVoice) {
           setTimeout(() => {
-            if (continuousVoice) micController.start();
+            if (continuousVoice && !recognitionRunning) {
+              try { micController.start(); } catch (err) { /* already running */ }
+            }
           }, 80);
         } else {
           setMicUI(false);
@@ -743,6 +760,8 @@ function wireChat() {
       }
     });
   }
+
+  document.getElementById('interruptBtn').addEventListener('click', interruptJarvis);
 
   document.getElementById('checkInBtn').addEventListener('click', async () => {
     if (!state.assistant.apiKey) {

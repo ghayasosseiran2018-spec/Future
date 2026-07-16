@@ -76,15 +76,22 @@ their own entry, or their own Client ID).
   on the left, one node per unit of knowledge the panel holds; a live chat
   on the right. Type, or click **START CONVERSATION** for genuinely hands-free
   voice: once it's on, she keeps listening continuously — no clicking the mic
-  for every turn — and each sentence you finish sends itself. You can also
-  **interrupt her mid-sentence** just by talking; the moment real speech is
-  detected she stops immediately rather than finishing her thought. (This
-  works best with headphones — without them, the mic can occasionally pick
-  up her own voice through the speakers and mistake it for you interrupting.
-  Click the button again to stop listening.) Ask her to plan your week, talk
-  through an idea, or reorganize your priorities — she can actually add/update
-  tasks, projects, reminders, and trajectory progress as she talks, not just
-  suggest. Use REQUEST CHECK-IN to have her proactively review your state on
+  for every turn — and each sentence you finish sends itself. Click the
+  button again to stop listening.
+  There are two ways to interrupt her mid-sentence: just start talking (the
+  browser tries to detect your voice over hers and cut her off automatically),
+  or click **⏹ INTERRUPT**, which stops her instantly, no detection involved —
+  that one always works. The automatic version is inherently less reliable:
+  browsers don't give a page real echo-cancellation control over speech
+  recognition, so how well it catches you talking over her depends on your
+  mic, your browser, and whether you're on headphones (headphones help a
+  lot, since there's then nothing for the mic to mishear). If it's not
+  cutting her off reliably on your setup, **⏹ INTERRUPT** is the dependable
+  one — use it.
+  Ask her to plan your week, talk through an idea, or reorganize your
+  priorities — she can actually add/update tasks, projects, reminders, and
+  trajectory progress as she talks, not just suggest. Use REQUEST CHECK-IN to
+  have her proactively review your state on
   demand; she also does this automatically at most once every 6 hours.
   Replies are spoken in a British English voice when SPEAK REPLIES is on
   (your browser's built-in voices — quality/gender options vary by browser

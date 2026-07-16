@@ -19,7 +19,7 @@ export function isSynthesisSupported() {
 // speech-like sound — call sites use it to cut JARVIS off mid-sentence
 // (barge-in) the instant the user starts talking, before the utterance
 // even finishes transcribing.
-export function createRecognizer({ onResult, onInterim, onSpeechStart, onEnd, onError }) {
+export function createRecognizer({ onResult, onInterim, onSpeechStart, onStart, onEnd, onError }) {
   if (!SpeechRecognitionImpl) return null;
   const rec = new SpeechRecognitionImpl();
   rec.lang = 'en-US';
@@ -34,7 +34,25 @@ export function createRecognizer({ onResult, onInterim, onSpeechStart, onEnd, on
       else onInterim?.(transcript);
     }
   };
-  rec.onspeechstart = () => onSpeechStart?.();
+  // Fire the barge-in hook off the earliest signal available — onaudiostart
+  // is the most sensitive (any audio at all), onsoundstart next, onspeechstart
+  // the strictest. Wiring all three to the same callback means whichever the
+  // browser actually implements/fires first wins, instead of betting on the
+  // one (onspeechstart) that requires the most confident "this is speech"
+  // read on a signal that may be competing with JARVIS's own voice.
+  let firedThisTurn = false;
+  const triggerSpeechStart = () => {
+    if (firedThisTurn) return;
+    firedThisTurn = true;
+    onSpeechStart?.();
+  };
+  rec.onaudiostart = triggerSpeechStart;
+  rec.onsoundstart = triggerSpeechStart;
+  rec.onspeechstart = triggerSpeechStart;
+  rec.onstart = () => {
+    firedThisTurn = false;
+    onStart?.();
+  };
   rec.onend = () => onEnd?.();
   rec.onerror = (e) => onError?.(e);
   return {
