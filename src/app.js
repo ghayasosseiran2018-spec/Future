@@ -3,13 +3,17 @@ import { defaultState, computeStageStatuses, daysUntil, knowledgeNodeCount } fro
 import { generateSuggestion } from './suggestions.js';
 import { KNOWLEDGE, DOMAIN_LABELS, DOMAIN_COLORS } from './knowledge.js';
 import { MindSphere } from './sphere.js';
-import { runAssistantTurn, runProactiveCheckIn } from './assistant.js';
+import { runAssistantTurn, runProactiveCheckIn, seedHistoryFromConversation } from './assistant.js';
 import * as Voice from './voice.js';
 import * as Google from './google.js';
 
 let state = loadState(defaultState);
 let sphere = null;
-let anthropicHistory = []; // full Anthropic message history incl. tool blocks — session-only, not persisted
+// Full Anthropic message history (incl. tool blocks) is session-only, not persisted —
+// but it's seeded from the persisted display conversation on load so recent context
+// survives a reload even though raw tool-call plumbing doesn't. Durable facts live in
+// state.memory.notes instead, which JARVIS maintains via the update_memory tool.
+let anthropicHistory = seedHistoryFromConversation(state.conversation);
 let micActive = false;
 let micController = null;
 
@@ -479,12 +483,36 @@ function updateSphere() {
     for (const t of state.tasks) specs.push({ color: t.done ? cssVar('--rb-green') : cssVar('--rb-yellow') });
     const turns = state.conversation.length;
     for (let i = 0; i < Math.floor(turns / 2); i++) specs.push({ color: cssVar('--rb-teal') });
+    for (const n of state.memory.notes) specs.push({ color: cssVar('--rb-red') });
     sphere.setNodes(specs);
     lastSphereNodeCount = count;
   }
   document.getElementById('sphereNodeCount').textContent = String(count);
   document.getElementById('sphereEdgeCount').textContent = String(sphere.edges.length);
   document.getElementById('sphereTurnCount').textContent = String(state.conversation.length);
+}
+
+function renderMemory() {
+  const list = document.getElementById('memoryList');
+  const notes = state.memory.notes;
+  if (!notes.length) {
+    list.innerHTML = '<div class="empty-note">Nothing remembered yet — JARVIS records durable facts and preferences as you talk.</div>';
+    return;
+  }
+  list.innerHTML = [...notes]
+    .reverse()
+    .map((n) => `<div class="memory-note" data-id="${n.id}"><span class="tag">${escapeHtml(n.category)}</span><span class="row-main">${escapeHtml(n.text)}</span><button class="memory-delete" data-id="${n.id}" title="Forget this">✕</button></div>`)
+    .join('');
+}
+
+function wireMemory() {
+  document.getElementById('memoryList').addEventListener('click', (e) => {
+    if (e.target.classList.contains('memory-delete')) {
+      state.memory.notes = state.memory.notes.filter((n) => n.id !== e.target.dataset.id);
+      persist();
+      renderAll();
+    }
+  });
 }
 
 /* ---------------- JARVIS CHAT ---------------- */
@@ -630,6 +658,7 @@ function wireSettings() {
     if (!file) return;
     try {
       state = await importStateFromFile(file);
+      anthropicHistory = seedHistoryFromConversation(state.conversation);
       persist();
       renderAll();
     } catch (err) {
@@ -638,9 +667,10 @@ function wireSettings() {
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
-    if (confirm('This will erase all local data (tasks, projects, reminders, advisory log). Continue?')) {
+    if (confirm('This will erase all local data (tasks, projects, reminders, advisory log, memory). Continue?')) {
       resetState();
       state = defaultState();
+      anthropicHistory = [];
       renderAll();
     }
   });
@@ -672,6 +702,7 @@ function renderAll() {
   renderOverview();
   renderKnowledgeBase();
   renderChat();
+  renderMemory();
   updateSphere();
 
   const speakBtn = document.getElementById('speakToggleBtn');
@@ -709,6 +740,7 @@ export function initApp() {
   wireGoogle();
   wireSettings();
   wireChat();
+  wireMemory();
 
   sphere = new MindSphere(document.getElementById('mindSphere'));
   sphere.start();

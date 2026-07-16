@@ -46,6 +46,12 @@ step below.
   projects, reminders, and trajectory progress as it talks, not just suggest.
   Use REQUEST CHECK-IN to have it proactively review your state on demand;
   it also does this automatically at most once every 6 hours.
+  Below the sphere is **LEARNED MEMORY**: durable facts, preferences, and
+  patterns JARVIS has chosen to remember (it decides what's worth keeping via
+  its own `update_memory` tool — corrections and recurring patterns, not
+  routine task details). This is what survives a page reload even though the
+  raw conversation history otherwise wouldn't; delete any note with ✕ if it's
+  wrong or you'd rather it forget.
 - **OVERVIEW** — at-a-glance status: countdown to law school, active tasks,
   registered projects, pending alerts, and the latest advisory suggestion.
 - **TASK QUEUE** — add/complete/delete tasks, optionally tied to a project,

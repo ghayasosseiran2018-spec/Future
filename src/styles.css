@@ -351,6 +351,14 @@ input:focus, select:focus, textarea:focus{outline:1px solid var(--rb-blue);}
 .sphere-stats{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-dim);letter-spacing:1px;width:100%;}
 .sphere-stats b{color:var(--rb-blue);font-variant-numeric:tabular-nums;}
 
+.memory-panel{width:100%;border-top:1px solid var(--line);padding-top:10px;}
+.memory-label{font-family:var(--font-display);font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px;}
+.memory-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
+.memory-note{display:flex;align-items:flex-start;gap:6px;background:var(--bg-deep);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:11.5px;line-height:1.4;}
+.memory-note .tag{flex-shrink:0;}
+.memory-note button{flex-shrink:0;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;line-height:1;padding:0 2px;}
+.memory-note button:hover{color:var(--signal-warn);}
+
 .chat-panel{
   background:var(--bg-panel-raised);border:1px solid var(--line);border-radius:14px;
   display:flex;flex-direction:column;min-height:520px;

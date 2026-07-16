@@ -100,6 +100,19 @@ const TOOLS = [
       required: ['stageId', 'progress'],
     },
   },
+  {
+    name: 'update_memory',
+    description:
+      "Record a durable fact, preference, or behavioral pattern about the user that is worth remembering in future sessions — not a one-off task detail. Use this whenever you notice something like a correction (\"actually I prefer X\"), a recurring pattern (they keep deprioritizing a project), or a stable fact about their goals or working style. Do not log routine task/project updates here — those are already tracked elsewhere.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        note: { type: 'string', description: 'The durable fact/preference/pattern, written concisely in third person.' },
+        category: { type: 'string', enum: ['preference', 'pattern', 'fact'] },
+      },
+      required: ['note'],
+    },
+  },
 ];
 
 function executeTool(state, name, input) {
@@ -174,6 +187,16 @@ function executeTool(state, name, input) {
       s.progress = Math.max(0, Math.min(100, input.progress));
       return { ok: true };
     }
+    case 'update_memory': {
+      state.memory.notes.push({
+        id: uid(),
+        text: input.note,
+        category: input.category || 'fact',
+        ts: Date.now(),
+      });
+      if (state.memory.notes.length > 60) state.memory.notes.shift();
+      return { ok: true };
+    }
     default:
       return { ok: false, error: 'unknown tool' };
   }
@@ -195,12 +218,18 @@ function buildSystemPrompt(state) {
   const projectsList = state.projects.map((p) => `- [${p.id}] "${p.name}" discipline="${p.discipline}" status=${p.status} lastUpdated=${new Date(p.updatedAt).toLocaleDateString()}`).join('\n') || '(none yet)';
   const remindersList = state.reminders.map((r) => `- [${r.id}] "${r.text}" type=${r.type} ${r.type === 'time' ? `time=${r.time}` : `days=${r.days} projectId=${r.projectId}`}`).join('\n') || '(none yet)';
   const stagesList = state.stages.map((s) => `- ${s.id}: ${s.title} — ${s.progress}% complete`).join('\n');
+  const memoryList = (state.memory?.notes || []).map((n) => `- (${n.category}) ${n.text}`).join('\n') || '(nothing remembered yet)';
 
   return `You are JARVIS, the voice of OVERWATCH — a personal command console for one specific life trajectory: starting a JD this September, becoming a practicing international lawyer, then pursuing a PhD in philosophy on phenomenology and critical political/legal thought of vitality, time, and love.
 
 Your job: be a genuine thinking partner. Converse naturally and briefly (this may be read aloud, so avoid long lists in prose — keep replies to a few sentences unless asked for depth). Be proactive: notice when something in the state below is stale, approaching, or unbalanced, and say so or ask about it — don't wait to only be asked. Ask real clarifying questions when priorities are ambiguous, then use your tools to actually update the schedule/tasks/projects/reminders rather than just describing what should happen.
 
 You have a detailed knowledge base about this exact trajectory (law school, international law careers, phenomenology, critical theory, PhD path) — draw on it specifically and concretely, never generically.
+
+LEARNED MEMORY (persists across sessions — this is what you actually remember about the user from past conversations, since raw chat history does not carry over between browser reloads):
+${memoryList}
+
+Whenever you notice something durable worth remembering — a stated preference, a correction, a recurring behavioral pattern — call update_memory so you actually retain it next time, rather than re-learning it every session. Don't log routine task details there.
 
 Today's date: ${new Date().toDateString()}. Days until law school starts: ${d}.
 
@@ -220,6 +249,17 @@ KNOWLEDGE BASE:
 ${knowledgeSummary()}
 
 When the user asks you to plan, prioritize, or organize anything, actually call the relevant tools rather than only suggesting — you are trusted to edit the panel's state directly. Keep tool edits proportionate to what was discussed.`;
+}
+
+// Rebuilds an Anthropic-format message history from the persisted, human-readable
+// conversation log so recent context survives a page reload even though the raw
+// tool-call history does not. Kept short and plain-text only (no tool blocks) —
+// durable facts belong in memory notes, not in replayed history.
+export function seedHistoryFromConversation(conversation, limit = 12) {
+  return conversation
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .slice(-limit)
+    .map((m) => ({ role: m.role, content: m.text }));
 }
 
 async function callAnthropic(apiKey, model, system, messages) {

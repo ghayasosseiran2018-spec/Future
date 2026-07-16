@@ -75,6 +75,9 @@ export function defaultState() {
     reminders: [],
     suggestionLog: [],
     conversation: [],
+    memory: {
+      notes: [], // durable facts/preferences/patterns JARVIS chooses to remember across sessions
+    },
     google: {
       clientId: '',
       connected: false,
@@ -89,11 +92,12 @@ export function defaultState() {
 }
 
 // The mind sphere's node count grows with everything the panel actually knows:
-// fixed knowledge-base entries, registered projects/tasks, and conversation turns
-// exchanged with the assistant. This is what makes the sphere visibly grow over time.
+// fixed knowledge-base entries, registered projects/tasks, conversation turns,
+// and memory notes JARVIS has chosen to remember long-term.
 export function knowledgeNodeCount(state, knowledgeLength) {
   const conversationTurns = state.conversation?.length || 0;
-  return knowledgeLength + state.projects.length * 3 + state.tasks.length + Math.floor(conversationTurns / 2);
+  const memoryNotes = state.memory?.notes?.length || 0;
+  return knowledgeLength + state.projects.length * 3 + state.tasks.length + Math.floor(conversationTurns / 2) + memoryNotes;
 }
 
 export function daysUntil(dateStr) {
