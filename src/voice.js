@@ -13,23 +13,34 @@ export function isSynthesisSupported() {
   return 'speechSynthesis' in window;
 }
 
-export function createRecognizer({ onResult, onEnd, onError }) {
+// Continuous, hands-free recognition: stays listening across multiple
+// utterances (continuous + interimResults) instead of one push-to-talk
+// capture at a time. onSpeechStart fires the moment the browser detects
+// speech-like sound — call sites use it to cut JARVIS off mid-sentence
+// (barge-in) the instant the user starts talking, before the utterance
+// even finishes transcribing.
+export function createRecognizer({ onResult, onInterim, onSpeechStart, onEnd, onError }) {
   if (!SpeechRecognitionImpl) return null;
   const rec = new SpeechRecognitionImpl();
   rec.lang = 'en-US';
-  rec.interimResults = false;
+  rec.continuous = true;
+  rec.interimResults = true;
   rec.maxAlternatives = 1;
   rec.onresult = (e) => {
-    const text = Array.from(e.results)
-      .map((r) => r[0].transcript)
-      .join(' ');
-    onResult?.(text);
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const result = e.results[i];
+      const transcript = result[0].transcript;
+      if (result.isFinal) onResult?.(transcript.trim());
+      else onInterim?.(transcript);
+    }
   };
+  rec.onspeechstart = () => onSpeechStart?.();
   rec.onend = () => onEnd?.();
   rec.onerror = (e) => onError?.(e);
   return {
     start: () => rec.start(),
     stop: () => rec.stop(),
+    abort: () => rec.abort(),
   };
 }
 

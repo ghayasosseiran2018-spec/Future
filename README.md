@@ -74,15 +74,22 @@ their own entry, or their own Client ID).
 
 - **JARVIS** — the home tab. A rotating constellation sphere (the "mind")
   on the left, one node per unit of knowledge the panel holds; a live chat
-  on the right. Type or use the mic; ask it to plan your week, talk through
-  an idea, or reorganize your priorities — it can actually add/update tasks,
-  projects, reminders, and trajectory progress as it talks, not just suggest.
-  Use REQUEST CHECK-IN to have it proactively review your state on demand;
-  it also does this automatically at most once every 6 hours. Replies are
-  spoken in a British English voice when SPEAK REPLIES is on (your browser's
-  built-in voices — quality/gender options vary by browser and OS), and the
-  sphere visibly speeds up and pulses in time with speech, settling back to
-  its idle rotation once JARVIS stops talking.
+  on the right. Type, or click **START CONVERSATION** for genuinely hands-free
+  voice: once it's on, she keeps listening continuously — no clicking the mic
+  for every turn — and each sentence you finish sends itself. You can also
+  **interrupt her mid-sentence** just by talking; the moment real speech is
+  detected she stops immediately rather than finishing her thought. (This
+  works best with headphones — without them, the mic can occasionally pick
+  up her own voice through the speakers and mistake it for you interrupting.
+  Click the button again to stop listening.) Ask her to plan your week, talk
+  through an idea, or reorganize your priorities — she can actually add/update
+  tasks, projects, reminders, and trajectory progress as she talks, not just
+  suggest. Use REQUEST CHECK-IN to have her proactively review your state on
+  demand; she also does this automatically at most once every 6 hours.
+  Replies are spoken in a British English voice when SPEAK REPLIES is on
+  (your browser's built-in voices — quality/gender options vary by browser
+  and OS), and the sphere visibly speeds up and pulses in time with speech,
+  settling back to its idle rotation once JARVIS stops talking.
   Below the sphere is **LEARNED MEMORY**: durable facts, preferences, and
   patterns JARVIS has chosen to remember (it decides what's worth keeping via
   its own `update_memory` tool — corrections and recurring patterns, not

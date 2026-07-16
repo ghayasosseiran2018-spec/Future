@@ -16,6 +16,7 @@ let sphere = null;
 let anthropicHistory = seedHistoryFromConversation(state.conversation);
 let micActive = false;
 let micController = null;
+let continuousVoice = false; // hands-free listening mode — resets each page load (browsers require a fresh user gesture to grant mic access)
 
 function persist() {
   saveState(state);
@@ -679,29 +680,66 @@ function wireChat() {
     micBtn.disabled = true;
     micBtn.title = 'Speech recognition is not supported in this browser';
   } else {
+    const setMicUI = (listening) => {
+      micActive = listening;
+      micBtn.classList.toggle('mic-on', listening);
+      micBtn.textContent = listening ? '🔴 LISTENING — TAP TO STOP' : '🎙 START CONVERSATION';
+    };
+
     micController = Voice.createRecognizer({
+      // Final utterance: send it straight away, hands-free — no click needed.
       onResult: (text) => {
+        if (text) sendMessage(text);
+      },
+      // Live preview of what's being heard, cleared once the utterance finalizes.
+      onInterim: (text) => {
         document.getElementById('chatInput').value = text;
-        sendMessage(text);
+      },
+      // The instant real speech is detected, cut JARVIS off if she's mid-reply —
+      // true barge-in, not just "wait for her to finish." Works best with
+      // headphones, since without them the mic can occasionally pick up her
+      // own voice through the speakers and mistake it for an interruption.
+      onSpeechStart: () => {
+        if (window.speechSynthesis?.speaking) {
+          Voice.stopSpeaking();
+          sphere?.setSpeaking(false);
+        }
       },
       onEnd: () => {
-        micActive = false;
-        micBtn.classList.remove('mic-on');
+        document.getElementById('chatInput').value = '';
+        // Browsers stop recognition after a pause even in continuous mode —
+        // restart automatically so "hands-free" actually stays hands-free,
+        // unless the user (or an unrecoverable error) turned it off.
+        if (continuousVoice) {
+          setTimeout(() => {
+            if (continuousVoice) micController.start();
+          }, 80);
+        } else {
+          setMicUI(false);
+        }
       },
-      onError: () => {
-        micActive = false;
-        micBtn.classList.remove('mic-on');
+      onError: (e) => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') {
+          continuousVoice = false;
+          setMicUI(false);
+          state.conversation.push({ role: 'system', text: `Microphone unavailable (${e.error}) — check your browser's mic permission for this site.`, ts: Date.now() });
+          persist();
+          renderAll();
+        }
+        // other errors (e.g. 'no-speech' during a long pause) are routine in
+        // continuous mode — onEnd's auto-restart handles them silently.
       },
     });
+
     micBtn.addEventListener('click', () => {
-      if (micActive) {
+      if (continuousVoice) {
+        continuousVoice = false;
         micController.stop();
-        micActive = false;
-        micBtn.classList.remove('mic-on');
+        setMicUI(false);
       } else {
+        continuousVoice = true;
         micController.start();
-        micActive = true;
-        micBtn.classList.add('mic-on');
+        setMicUI(true);
       }
     });
   }
