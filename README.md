@@ -37,30 +37,37 @@ Netlify — any static host works, since there's no server code), deploy this
 folder as-is and use that URL as your authorized origin in the Google Cloud
 step below.
 
-## Hosting it online
+## Hosting it online (GitHub Pages)
 
-This repo is **private**, and GitHub Pages only publishes free from
-**public** repos — on a private repo it requires a paid GitHub plan (Pro or
-above). So the free path here is **Vercel** instead, which deploys private
-repos for free and keeps the repo itself private:
+This repo is public, so GitHub Pages is free. A workflow
+(`.github/workflows/deploy-pages.yml`) is already set up to publish it
+automatically on every push to `main`. One manual, one-time click switches
+it on — GitHub doesn't let a workflow file do this part by itself:
 
-1. Go to [vercel.com](https://vercel.com) and sign up/log in with your
-   GitHub account (free, no credit card).
-2. Click **Add New → Project**.
-3. Find and select this repo (`Future`) and click **Import**.
-4. Leave every setting on its default — no framework, no build command,
-   nothing to configure — and click **Deploy**.
-5. In under a minute you'll get a URL like `https://future-yourname.vercel.app`.
-   That's your page — bookmark it. Every future push to `main` redeploys it
-   automatically.
+1. On GitHub, open this repo and click **Settings** (top of the repo, not
+   your account settings).
+2. In the left sidebar, click **Pages**.
+3. Under **Build and deployment → Source**, choose **GitHub Actions**.
+4. That's it. Within a minute or two, refresh that same Settings → Pages
+   page — your live URL appears at the top, typically
+   `https://ghayasosseiran2018-spec.github.io/Future/`. Bookmark it.
 
-If you'd rather it stay off the internet entirely, use the "Running it"
-instructions above instead and just open `http://localhost:8000` when you
-want it.
+If a push hasn't happened since you enabled it, go to the **Actions** tab
+and re-run the "Deploy OVERWATCH to GitHub Pages" workflow to kick off the
+first deploy.
 
-Once it's live, add that Vercel URL as an authorized JavaScript origin in
-the Google Cloud step below if you want Docs Link to work from the hosted
-version too (it's origin-specific — localhost and the Vercel URL each need
+Being public means the code (not your data — your tasks, conversations, and
+API keys all stay only in your own browser, never in this repo) is visible
+to anyone with the link. If you'd rather that not be the case, you can make
+the repo private again from **Settings → General**, scroll to the bottom
+**Danger Zone → Change repository visibility** — but note Pages then
+requires a paid GitHub plan, so you'd want to use Vercel instead (free,
+works with private repos): sign up at vercel.com with your GitHub account,
+**Add New → Project**, import `Future`, click **Deploy** with defaults.
+
+Once it's live, add that URL as an authorized JavaScript origin in the
+Google Cloud step below if you want Docs Link to work from the hosted
+version too (it's origin-specific — localhost and the hosted URL each need
 their own entry, or their own Client ID).
 
 ## Using the panel
